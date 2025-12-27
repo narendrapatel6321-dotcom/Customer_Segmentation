@@ -1,75 +1,167 @@
-# Customer Segmentation using K-Means Clustering
+# Customer Segmentation using RFM Analysis
 
-This project performs customer segmentation on a dataset from a mall. The goal is to group customers into distinct clusters based on their annual income and spending score. This is an unsupervised learning problem, and the K-Means clustering algorithm is used to achieve this segmentation.
+This project performs **customer segmentation** using **Recency, Frequency, and Monetary (RFM)** analysis to identify meaningful customer groups and enable data-driven marketing and retention strategies.
+
+---
+
+## Problem Statement
+
+Businesses often treat all customers the same, leading to inefficient marketing spend and poor retention outcomes.  
+The goal of this project is to segment customers based on purchasing behavior so that **targeted actions** can be designed for different customer groups.
+
+---
 
 ## Dataset
 
-The dataset used is `Mall_Customers.csv`, which contains the following columns:
+- Transaction-level retail data
+- Key fields used:
+  - `CustomerID`
+  - `InvoiceDate`
+  - `InvoiceNo`
+  - `Quantity`
+  - `UnitPrice`
 
-  - `CustomerID`: Unique ID assigned to each customer.
-  - `Gender`: Gender of the customer.
-  - `Age`: Age of the customer.
-  - `Annual Income (k$)`: Annual income of the customer in thousands of dollars.
-  - `Spending Score (1-100)`: A score assigned by the mall based on customer behavior and spending nature.
+Cancelled transactions are retained to correctly compute **net monetary value**.
 
-For this clustering analysis, we will focus on the `Annual Income (k$)` and `Spending Score (1-100)` features.
+---
 
 ## Methodology
 
-The project follows these steps:
+### 1. Data Cleaning & Preparation
+- Removed rows with missing `CustomerID`
+- Converted `InvoiceDate` to datetime
+- Created `TotalPrice = Quantity × UnitPrice`
+- Preserved negative quantities to account for cancellations
 
-1.  **Data Loading and Exploration**: The necessary libraries are imported, and the dataset is loaded into a pandas DataFrame. Initial exploration is done to check for missing values and understand the data types.
+---
 
-2.  **Feature Selection**: `Annual Income` and `Spending Score` are selected as the features for clustering.
+### 2. RFM Feature Engineering
+For each customer:
+- **Recency**: Days since last purchase
+- **Frequency**: Number of unique invoices
+- **Monetary**: Total net spend
 
-3.  **Finding the Optimal Number of Clusters**: The **Elbow Method** is used to determine the optimal number of clusters ($k$) for the K-Means algorithm.
+A reference date of *last invoice date + 1 day* was used.
 
-      - We calculate the Within-Cluster Sum of Squares (WCSS) for a range of cluster numbers (1 to 10).
-      - WCSS is the sum of the squared distance between each point and the centroid in a cluster.
-      - By plotting WCSS against the number of clusters, we look for an "elbow" point, which indicates the optimal $k$.
-      - The elbow plot suggests that the optimal number of clusters is **5**.
+---
 
-4.  **Model Training**: A K-Means model is trained on the data with $k=5$. The model assigns each data point to one of the five clusters.
+### 3. Skewness Handling & Scaling
+- Frequency and Monetary showed strong right skew
+- Log transformation was applied to reduce dominance of extreme values
+- Features were standardized using `StandardScaler` to support distance-based clustering
 
-5.  **Visualization**: The five customer clusters are visualized using a scatter plot, with each cluster represented by a different color. The centroids of each cluster are also plotted.
+---
 
-## Results: Customer Segments
+### 4. Optimal Cluster Selection
 
-The analysis identifies five distinct customer segments:
+Two complementary methods were used:
 
-  - **Cluster 1 (Green)**: Low Income, Low Spending Score. These are careful customers who earn less and spend less.
-  - **Cluster 2 (Blue)**: High Income, High Spending Score. This is the **target** group. They earn high and spend high, making them ideal customers.
-  - **Cluster 3 (Yellow)**: Low Income, High Spending Score. These customers spend a lot despite having a low income. They could be considered careless or high-risk.
-  - **Cluster 4 (Red)**: High Income, Low Spending Score. These customers earn a high income but are careful with their spending.
-  - **Cluster 5 (Violet)**: Average Income, Average Spending Score. This group represents the standard or average customers.
+- **Elbow Method** to identify diminishing returns in within-cluster variance
+- **Silhouette Score** to evaluate cluster separation
 
-These insights can help the mall in formulating targeted marketing strategies for each segment.
+![Elbow and Silhouette](images/elbow_silhouette.png)
 
-## Libraries Used
+**Elbow Method & Silhouette Analysis (side-by-side)**  
 
-  - `numpy`
-  - `pandas`
-  - `matplotlib`
-  - `seaborn`
-  - `scikit-learn`
 
-## How to Run
+Based on stability and interpretability, **k = 4** was selected.
 
-1.  Clone the repository:
-    ```bash
-    git clone <repository-url>
-    ```
-2.  Navigate to the project directory:
-    ```bash
-    cd <project-directory>
-    ```
-3.  Install the required libraries:
-    ```bash
-    pip install numpy pandas matplotlib seaborn scikit-learn
-    ```
-4.  Ensure the `Mall_Customers.csv` file is in the same directory as the notebook.
-5.  Launch Jupyter Notebook and open `Customer_Segmentation.ipynb`.
-    ```bash
-    jupyter notebook Customer_Segmentation.ipynb
-    ```
-6.  Run the cells in the notebook to execute the analysis.
+---
+
+### 5. KMeans Clustering
+- Algorithm: KMeans
+- Number of clusters: 4
+- Random state fixed for reproducibility
+
+---
+
+### 6. Cluster Visualization
+
+Clusters were visualized using pairwise plots of RFM features to validate behavioral separation.
+
+![RFM Pairplot](images/rfm_pairplot.png) 
+**RFM Pairplot Colored by Cluster**  
+
+
+---
+
+## Cluster Interpretation & Business Meaning
+
+### Cluster 0 — Champions
+**Profile**
+- Very recent purchases  
+- High purchase frequency  
+- High monetary value  
+
+**Business Meaning**  
+Top-value customers who drive a disproportionate share of revenue.
+
+**Recommended Actions**
+- VIP programs
+- Early access to products
+- Strong retention focus
+
+---
+
+### Cluster 1 — Loyal Customers
+**Profile**
+- Frequent purchases
+- Moderate monetary value
+- Relatively recent activity  
+
+**Business Meaning**  
+Consistent customers with potential to become high-value.
+
+**Recommended Actions**
+- Upsell and cross-sell
+- Loyalty rewards
+- Bundled offers
+
+---
+
+### Cluster 2 — At-Risk Customers
+**Profile**
+- Long time since last purchase
+- Low frequency
+- Low monetary value  
+
+**Business Meaning**  
+Customers likely to churn without intervention.
+
+**Recommended Actions**
+- Win-back campaigns
+- Personalized discounts
+- Re-engagement emails
+
+---
+
+### Cluster 3 — New / One-Time Customers
+**Profile**
+- Recent purchase
+- Low frequency
+- Low monetary value  
+
+**Business Meaning**  
+Newly acquired customers with limited history.
+
+**Recommended Actions**
+- Onboarding campaigns
+- Incentives for second purchase
+- Reduce friction in repeat buying
+
+---
+
+## Key Takeaways
+
+- RFM-based clustering provides **actionable customer segments**
+- Log transformation and scaling are critical for stable clustering
+- Cluster interpretation is as important as the algorithm itself
+- The output directly supports **marketing, retention, and growth decisions**
+
+---
+
+## Notes
+
+This project focuses on **interpretability and business relevance**, not just model output.  
+Clustering is treated as a **decision-support tool**, not an end in itself.
+
